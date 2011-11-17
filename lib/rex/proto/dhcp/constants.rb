@@ -23,6 +23,7 @@ OpDns = 6
 OpHostname = 0x0c
 OpEnd = 0xff
 
+OpPXEEFIType = 93
 PXEMagic = "\xF1\x00\x74\x7E"
 OpPXEMagic = 0xD0
 OpPXEConfigFile = 0xD1

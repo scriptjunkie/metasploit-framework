@@ -27,8 +27,13 @@ class Server
 		self.context = context
 		self.sock = nil
 
-		self.myfilename = hash['FILENAME'] || ""
-		self.myfilename << ("\x00" * (128 - self.myfilename.length))
+		self.default_filename = hash['FILENAME'] || ""
+		self.default_filename << ("\x00" * (128 - self.default_filename.length))
+
+		self.efifilenames = hash['EFIFILENAMES'] || {7 => 'update5', 6 => 'update5'}
+		self.efifilenames.each do |name|
+			self.efifilenames[name] << ("\x00" * (128 - self.efifilenames[name].length))
+		end
 
 		source = hash['SRVHOST'] || Rex::Socket.source_address
 		self.ipstring = Rex::Socket.addr_aton(source)
@@ -90,8 +95,8 @@ class Server
 		
 		self.leasetime = 600
 		self.relayip = "\x00\x00\x00\x00" # relay ip - not currently suported
-		self.pxeconfigfile = "update2"
-		self.pxealtconfigfile = "update0"
+		self.pxeconfigfile = hash['CONFIGFILENAME'] || "update2"
+		self.pxealtconfigfile = hash['ALTCONFIGFILENAME'] || "update0"
 		self.pxepathprefix = ""
 		self.pxereboottime = 2000
 	end
@@ -151,10 +156,10 @@ class Server
 	end
 
 	attr_accessor :listen_host, :listen_port, :context, :leasetime, :relayip, :router, :dnsserv
-	attr_accessor :sock, :thread, :myfilename, :ipstring, :served, :serveOnce
+	attr_accessor :sock, :thread, :default_filename, :ipstring, :served, :serveOnce
 	attr_accessor :current_ip, :start_ip, :end_ip, :broadcasta, :netmaskn
 	attr_accessor :servePXE, :pxeconfigfile, :pxealtconfigfile, :pxepathprefix, :pxereboottime, :serveOnlyPXE
-	attr_accessor :give_hostname, :served_hostname, :served_over, :reporter
+	attr_accessor :give_hostname, :served_hostname, :served_over, :reporter, :efifilenames
 
 protected
 
@@ -220,6 +225,7 @@ protected
 
 		messageType = 0
 		pxeclient = false
+		srvfilename = self.default_filename
 
 		# options parsing loop
 		spot = 240
@@ -234,6 +240,8 @@ protected
 				messageType = optionValue.unpack("C").first
 			elsif optionType == 150 or (optionType == 60 and optionValue.include? "PXEClient")
 				pxeclient = true
+			elsif optionType == OpPXEEFIType and efifilenames[optionValue.unpack('n')[0]]
+				srvfilename = efifilenames[optionValue.unpack('n')[0]]
 			end
 		end
 
@@ -261,7 +269,7 @@ protected
 		pkt << self.relayip
 		pkt << buf[28..43] #client hw address
 		pkt << servhostname
-		pkt << self.myfilename
+		pkt << srvfilename
 		pkt << magic
 		pkt << "\x35\x01" #Option
 
