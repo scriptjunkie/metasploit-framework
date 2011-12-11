@@ -38,6 +38,11 @@ class Metasploit3 < Msf::Post
 
 		wlan_connections= "Wireless LAN Active Connections: \n"
 		wlan_handle = open_handle()
+		unless wlan_handle
+			print_error("Couldn't open WlanAPI Handle. WLAN API may not be installed on target")
+			print_error("On Windows XP this could also mean the Wireless Zero Configuration Service is turned off")
+			return
+		end
 		wlan_iflist = enum_interfaces(wlan_handle)
 
 		wlan_iflist.each do |interface|
@@ -75,7 +80,6 @@ class Metasploit3 < Msf::Post
 		begin
 			wlhandle = @wlanapi.WlanOpenHandle(2,nil,4,4)
 		rescue
-			print_error("Couldn't open WlanAPI Handle. WLAN API may not be installed on target")
 			return nil
 		end
 		return wlhandle['phClientHandle']
@@ -310,7 +314,7 @@ class Metasploit3 < Msf::Post
 	#Convert the GUID to human readable form
 	def guid_to_string(guid)
 		aguid = guid.unpack("H*")[0]
-		sguid = "{" + aguid[6,2] + aguid[4,2] + aguid[2,2] + aguid[0,2] 
+		sguid = "{" + aguid[6,2] + aguid[4,2] + aguid[2,2] + aguid[0,2]
 		sguid << "-" + aguid[10,2] +  aguid[8,2] + "-" + aguid[14,2] + aguid[12,2] + "-" +  aguid[16,4]
 		sguid << "-" + aguid[20,12] + "}"
 		return sguid

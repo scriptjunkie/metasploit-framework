@@ -40,6 +40,11 @@ class Metasploit3 < Msf::Post
 		wlan_connections= "Wireless LAN Active Connections: \n"
 
 		wlan_handle = open_handle()
+		unless wlan_handle
+			print_error("Couldn't open WlanAPI Handle. WLAN API may not be installed on target")
+			print_error("On Windows XP this could also mean the Wireless Zero Configuration Service is turned off")
+			return
+		end
 
 		wlan_iflist = enum_interfaces(wlan_handle)
 
@@ -66,7 +71,7 @@ class Metasploit3 < Msf::Post
 			print_good(netout)
 			network_list << netout
 		end
-		
+
 		#strip out any nullbytes for safe loot storage
 		network_list.gsub!(/\x00/,"")
 		store_loot("host.windows.wlan.networks", "text/plain", session, network_list, "wlan_networks.txt", "Available Wireless LAN Networks")
@@ -85,7 +90,6 @@ class Metasploit3 < Msf::Post
 		begin
 			wlhandle = @wlanapi.WlanOpenHandle(2,nil,4,4)
 		rescue
-			print_error("Couldn't open WlanAPI Handle. WLAN API may not be installed on target")
 			return nil
 		end
 		return wlhandle['phClientHandle']
@@ -116,7 +120,7 @@ class Metasploit3 < Msf::Post
 			#If the length of the SSID is 0 then something is wrong. Skip this one
 			pointer = (pointer + 4)
 			len_ssid = @host_process.memory.read(pointer,4)
-			unless len_ssid.unpack("V")[0] 
+			unless len_ssid.unpack("V")[0]
 				next
 			end
 
@@ -178,7 +182,7 @@ class Metasploit3 < Msf::Post
 			pointer = (pointer + 4)
 			rssi = @host_process.memory.read(pointer,4)
 			rssi = getle_signed_int(rssi)
-			bss['rssi'] = rssi 
+			bss['rssi'] = rssi
 
 			#Get the signal strength
 			pointer = (pointer + 4)
@@ -255,7 +259,7 @@ class Metasploit3 < Msf::Post
 	#Convert the GUID to human readable form
 	def guid_to_string(guid)
 		aguid = guid.unpack("H*")[0]
-		sguid = "{" + aguid[6,2] + aguid[4,2] + aguid[2,2] + aguid[0,2] 
+		sguid = "{" + aguid[6,2] + aguid[4,2] + aguid[2,2] + aguid[0,2]
 		sguid << "-" + aguid[10,2] +  aguid[8,2] + "-" + aguid[14,2] + aguid[12,2] + "-" +  aguid[16,4]
 		sguid << "-" + aguid[20,12] + "}"
 		return sguid
